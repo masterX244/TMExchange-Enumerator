@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31129.286
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TM-ExchangeURLGrabber", "TM-ExchangeURLGrabber.csproj", "{0E19FB29-2DE2-4E84-BDE4-CD6CFB7EA952}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0E19FB29-2DE2-4E84-BDE4-CD6CFB7EA952}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E19FB29-2DE2-4E84-BDE4-CD6CFB7EA952}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E19FB29-2DE2-4E84-BDE4-CD6CFB7EA952}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E19FB29-2DE2-4E84-BDE4-CD6CFB7EA952}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {585B9709-C7AB-4079-A782-BF1F9A2EFDCF}
+	EndGlobalSection
+EndGlobal
