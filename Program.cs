@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,10 +21,141 @@ namespace TM_ExchangeURLGrabber
 
         static async Task Main(string[] args)
         {
-            foreach(var prefix in prefixes)
+            if (args.Length>0&&args[0] == "stage1")
             {
-                await Process(prefix);
+                foreach (var prefix in prefixes)
+                {
+                    await Process(prefix);
+                }
             }
+            else
+            {
+                foreach (var prefix in prefixes)
+                {
+                    await ProcessStage2(prefix);
+                }
+            }
+        }
+
+        static async Task ProcessStage2(string prefix)
+        {
+            var urls = File.ReadAllLines("./"+prefix + ".txt");
+
+            var secondaryUrls = new List<String>();
+
+            foreach (string url in urls)
+            {
+                var id = url.Split("id=")[1].Replace("#auto", "");
+                Console.WriteLine("ID=" + id);
+                if (prefix == "united" || prefix == "tmnforever")
+                {
+                    var tmp = await ProcessStage2Modern(prefix, id,url.Replace("&amp;","&"));
+                    secondaryUrls.AddRange(tmp);
+                    Console.WriteLine("FIN MID=" + id);
+                }
+                else
+                {
+                    var tmp = await ProcessStage2Legacy(prefix, id, url.Replace("&amp;", "&"));
+                    secondaryUrls.AddRange(tmp);
+                    Console.WriteLine("FIN LID=" + id);
+                }
+                
+            }
+            File.WriteAllLines("./" + prefix + "-stage2.txt",secondaryUrls);
+        }
+
+        /// <summary>
+        /// Handles old TM-exchanges with only leaderboards on a track
+        /// </summary>
+        static async Task<List<String>> ProcessStage2Legacy(string prefix, string trackid,string realurl)
+        {
+            //synthesizing 2 guaranteed URLs instead of hunting those down in the code
+            List<String> returnUrls = new List<String> { "http://"+prefix+".tm-exchange.com/main.aspx?action=trackgbx&id="+trackid, "http://" + prefix + ".tm-exchange.com/get.aspx?action=trackgbx&id=" + trackid };
+            // http://sunrise.tm-exchange.com/main.aspx?action=trackgbx&id=548627
+
+
+            var response = await client.GetAsync(realurl);
+
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            var doc = new HtmlDocument();
+            doc.LoadHtml(responseString);
+
+            returnUrls.AddRange(parseUrlMagicReplayLegacy(doc, prefix));
+            return returnUrls;
+        }
+
+
+        private static List<string> parseUrlMagicReplayLegacy(HtmlDocument doc, string prefix)
+        {
+            var returnVal = new List<string>();
+            // 
+            var nodes = doc.DocumentNode.SelectNodes("//tr[contains(@class, 'WindowTableCell1') or contains(@class, 'WindowTableCell2')]/td[1]/a[1]");
+
+            if (nodes != null)
+            {
+                foreach (var node in nodes)
+                {
+                    returnVal.Add("https://" + prefix + ".tm-exchange.com/" + node.Attributes["href"].Value.Replace("&amp;", "&"));
+                    Console.WriteLine("https://" + prefix + ".tm-exchange.com/" + node.Attributes["href"].Value.Replace("&amp;", "&"));
+                }
+            }
+            return returnVal;
+        }
+
+
+        /// <summary>
+        /// Handles modern TM-Exchanges with replay searczh
+        /// </summary>
+        static async Task<List<String>> ProcessStage2Modern(string prefix, string trackid, string realurl)
+        {
+            // https://united.tm-exchange.com/main.aspx?action=trackreplayshow&id=3190144
+            var replayurl = "http://" + prefix + ".tm-exchange.com/main.aspx?action=trackreplayshow&id=" + trackid;
+            //synthesizing 2 guaranteed URLs instead of hunting those down in the code
+            List<String> returnUrls = new List<String> {
+                "http://" + prefix + ".tm-exchange.com/main.aspx?action=trackgbx&id=" + trackid, 
+                "http://" + prefix + ".tm-exchange.com/get.aspx?action=trackgbx&id=" + trackid,
+                replayurl
+            };
+            // http://sunrise.tm-exchange.com/main.aspx?action=trackgbx&id=548627
+
+
+            var response = await client.GetAsync(replayurl);
+
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            var doc = new HtmlDocument();
+            doc.LoadHtml(responseString);
+
+            returnUrls.AddRange(parseUrlMagicReplayModern(doc, prefix));
+            return returnUrls;
+        }
+
+        private static List<string> parseUrlMagicReplayModern(HtmlDocument doc, string prefix)
+        {
+            Console.WriteLine("DeepDrill");
+            var returnVal = new List<string>();
+            // damnyou for hiding the data inside json....
+            var node = doc.DocumentNode.SelectSingleNode("//input[@id=\"ctl03_ReplayData\"]") ?? doc.DocumentNode.SelectSingleNode("//input[@id=\"_ctl3_ReplayData\"]");
+            // 
+
+            if (node != null)
+            {
+                var json = node.Attributes["value"].Value.Replace("&quot;", "\"");
+                JArray o = JArray.Parse(json);
+
+                foreach (dynamic innerNode in o)
+                {
+                    int replayId = innerNode.ReplayId;
+                    returnVal.Add("https://" + prefix + ".tm-exchange.com/get.aspx?action=recordgbx&id="+replayId);
+                    Console.WriteLine("https://" + prefix + ".tm-exchange.com/get.aspx?action=recordgbx&id=" + replayId);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Shit");
+            }
+            return returnVal;
         }
 
         static async Task Process(string prefix)
