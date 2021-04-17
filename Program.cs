@@ -13,9 +13,16 @@ namespace TM_ExchangeURLGrabber
         private static readonly HttpClient client = new HttpClient();
         private static readonly string magicXpath = "//input";
         private static readonly string magicXpath2 = "//select";
-        private static readonly string parameter = "_ctl3$PageTracks";
+        private static readonly Dictionary<String, String> parameters = new Dictionary<string, string>
+        {
+            {"united","_ctl3$PageTracks" },
+            {"tmnforever","_ctl3$PageTracks" },
+            {"nations","ctl03$PageTracks" },
+            {"sunrise","ctl03$PageTracks" },
+            {"original","ctl03$PageTracks" },
+        };
         private static readonly string template = "goto|{0}|20";
-        private static readonly int maxPages = Int32.MaxValue; //MAXINT on production run
+        private static readonly int maxPages = 5; //Int32.MaxValue on production run
         private static string[] prefixes = { "united", "tmnforever", "nations", "sunrise", "original" };
 
 
@@ -25,6 +32,12 @@ namespace TM_ExchangeURLGrabber
             {
                 foreach (var prefix in prefixes)
                 {
+                    if(File.Exists("./" + prefix + ".txt"))
+                    {
+                        //skip if exists for now, in future a incremental handler, used for recovery on a botched run
+                        continue;
+                    }
+
                     await Process(prefix);
                 }
             }
@@ -32,6 +45,11 @@ namespace TM_ExchangeURLGrabber
             {
                 foreach (var prefix in prefixes)
                 {
+                    if (File.Exists("./" + prefix + "-stage2.txt"))
+                    {
+                        //skip if exists for now, in future a incremental handler, used for recovery on a botched run
+                        continue;
+                    }
                     await ProcessStage2(prefix);
                 }
             }
@@ -188,7 +206,7 @@ namespace TM_ExchangeURLGrabber
                 Console.WriteLine(magic);
                 //postDict.Add(parameter, magic);
 
-                postDict.Add("__EVENTTARGET", parameter);
+                postDict.Add("__EVENTTARGET", parameters[prefix]);
                 postDict.Add("__EVENTARGUMENT", magic);
 
                 Console.WriteLine("############ BEGIN P0ST################");
