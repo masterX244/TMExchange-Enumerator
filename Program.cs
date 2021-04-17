@@ -16,7 +16,7 @@ namespace TM_ExchangeURLGrabber
         private static readonly Dictionary<String, String> parameters = new Dictionary<string, string>
         {
             {"united","_ctl3$PageTracks" },
-            {"tmnforever","_ctl3$PageTracks" },
+            {"tmnforever","ctl03$PageTracks" },
             {"nations","ctl03$PageTracks" },
             {"sunrise","ctl03$PageTracks" },
             {"original","ctl03$PageTracks" },
