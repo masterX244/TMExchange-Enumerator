@@ -22,7 +22,7 @@ namespace TM_ExchangeURLGrabber
             {"original","ctl03$PageTracks" },
         };
         private static readonly string template = "goto|{0}|20";
-        private static readonly int maxPages = 5; //Int32.MaxValue on production run
+        private static readonly int maxPages = Int32.MaxValue; //Int32.MaxValue on production run
         private static string[] prefixes = { "united", "tmnforever", "nations", "sunrise", "original" };
 
 
@@ -32,13 +32,15 @@ namespace TM_ExchangeURLGrabber
             {
                 foreach (var prefix in prefixes)
                 {
-                    if(File.Exists("./" + prefix + ".txt"))
+                    if (File.Exists("./" + prefix + ".txt"))
                     {
                         //skip if exists for now, in future a incremental handler, used for recovery on a botched run
                         continue;
                     }
-
-                    await Process(prefix);
+                    else
+                    {
+                        await Process(prefix);
+                    }
                 }
             }
             else
@@ -50,7 +52,10 @@ namespace TM_ExchangeURLGrabber
                         //skip if exists for now, in future a incremental handler, used for recovery on a botched run
                         continue;
                     }
-                    await ProcessStage2(prefix);
+                    else
+                    {
+                        await ProcessStage2(prefix);
+                    }
                 }
             }
         }
