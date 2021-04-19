@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using MihaZupan;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace TM_ExchangeURLGrabber
 {
     class Program
     {
-        private static readonly HttpClient client = new HttpClient();
+        private static HttpClient client;
         private static readonly string magicXpath = "//input";
         private static readonly string magicXpath2 = "//select";
         private static readonly Dictionary<String, String> parameters = new Dictionary<string, string>
@@ -28,6 +29,25 @@ namespace TM_ExchangeURLGrabber
 
         static async Task Main(string[] args)
         {
+            if(args.Length>2)
+            {
+                var proxy = new HttpToSocks5Proxy("127.0.0.1", 9050);
+                var handler = new HttpClientHandler { Proxy = proxy };
+                client = new HttpClient(handler, true);
+            }
+            else
+            {
+                client = new HttpClient();
+            }
+
+            
+            var pageStart = 0;
+            if(args.Length>1)
+            {
+                pageStart = int.Parse(args[1]);
+                Console.WriteLine(pageStart);
+                Console.Error.WriteLine(pageStart);
+            }
             if (args.Length>0&&args[0] == "stage1")
             {
                 foreach (var prefix in prefixes)
@@ -39,7 +59,7 @@ namespace TM_ExchangeURLGrabber
                     }
                     else
                     {
-                        await Process(prefix);
+                        await Process(prefix, pageStart);
                     }
                 }
             }
@@ -54,22 +74,29 @@ namespace TM_ExchangeURLGrabber
                     }
                     else
                     {
-                        await ProcessStage2(prefix);
+                        await ProcessStage2(prefix,pageStart);
                     }
                 }
             }
         }
 
-        static async Task ProcessStage2(string prefix)
+        static async Task ProcessStage2(string prefix, int page)
         {
-            var urls = File.ReadAllLines("./"+prefix + ".txt");
+            var urls = new List<String>();
+            urls.AddRange(File.ReadAllLines("./"+prefix + ".txt"));
 
+            if (page > 0)
+            {
+                urls.RemoveRange(0, page);
+            }
             var secondaryUrls = new List<String>();
+
 
             foreach (string url in urls)
             {
                 var id = url.Split("id=")[1].Replace("#auto", "");
-                Console.WriteLine("ID=" + id);
+                Console.WriteLine("ID=" + id + ";" + page);
+                page++;
                 if (prefix == "united" || prefix == "tmnforever")
                 {
                     var tmp = await ProcessStage2Modern(prefix, id,url.Replace("&amp;","&"));
@@ -181,7 +208,7 @@ namespace TM_ExchangeURLGrabber
             return returnVal;
         }
 
-        static async Task Process(string prefix)
+        static async Task Process(string prefix,int page)
         {
             string html = "";
             var urlsFound = new List<string>();
@@ -201,7 +228,7 @@ namespace TM_ExchangeURLGrabber
             var pages = traxxetracks / 20.0d;
             var pagesCeiled = (int)Math.Ceiling(pages); //decimals should be gone now;
             Console.WriteLine(pages + "|" + pagesCeiled);
-            for(int i=1;i<Math.Min(pagesCeiled,maxPages);i++)
+            for(int i=page;i<Math.Min(pagesCeiled,maxPages);i++)
             {
                 var temp = parseUrlMagic(doc,prefix);
                 Console.WriteLine(temp.Count);
