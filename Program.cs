@@ -42,13 +42,13 @@ namespace TM_ExchangeURLGrabber
 
             
             var pageStart = 0;
-            if(args.Length>1)
+            if(args.Length>1&&!(args[0]=="guess"))
             {
                 pageStart = int.Parse(args[1]);
                 Console.WriteLine(pageStart);
                 Console.Error.WriteLine(pageStart);
             }
-            if (args.Length>0&&args[0] == "stage1")
+            if (args.Length>0&&(args[0] == "stage1"|| args[0] == "stage-1"))
             {
                 foreach (var prefix in prefixes)
                 {
@@ -59,10 +59,16 @@ namespace TM_ExchangeURLGrabber
                     }
                     else
                     {
-                        await Process(prefix, pageStart);
+                        await Process(prefix, pageStart, args[0] == "stage-1");
                     }
                 }
             }
+            else if(args.Length > 0 && (args[0] == "guess"))
+            {
+                await GuessTrtkIdTMNF(args[1]);
+            }
+
+
             else
             {
                 foreach (var prefix in prefixes)
@@ -79,6 +85,38 @@ namespace TM_ExchangeURLGrabber
                 }
             }
         }
+
+
+        /// <summary>
+        /// Handles old TM-exchanges with only leaderboards on a track
+        /// </summary>
+        static async Task GuessTrtkIdTMNF(string rangestring)
+        {
+            var range = rangestring.Split("|");
+
+            var from = int.Parse(range[0]);
+            var to = int.Parse(range[1]);
+
+            var trackinfostring = "Track Info";
+            var foundUrls = new List<string>();
+            for(int i=from;i<=to; i++)
+            {
+                var response = await client.GetAsync("https://tmnforever.tm-exchange.com/main.aspx?action=trackshow&id="+i+"#auto");
+                var responseString = await response.Content.ReadAsStringAsync();
+                if(responseString.Contains(trackinfostring))
+                {
+                    Console.WriteLine("https://tmnforever.tm-exchange.com/main.aspx?action=trackshow&id=" + i + "#auto");
+                    foundUrls.Add("https://tmnforever.tm-exchange.com/main.aspx?action=trackshow&id=" + i + "#auto");
+                }
+                else
+                {
+                    Console.WriteLine("FAIL:" + i);
+                }
+
+            }
+            File.WriteAllLines("tmnf-guessworks-" + from + "-" + to +".txt",foundUrls);
+        }
+
 
         static async Task ProcessStage2(string prefix, int page)
         {
@@ -208,7 +246,7 @@ namespace TM_ExchangeURLGrabber
             return returnVal;
         }
 
-        static async Task Process(string prefix,int page)
+        static async Task Process(string prefix,int page, bool revertSort)
         {
             string html = "";
             var urlsFound = new List<string>();
@@ -239,8 +277,23 @@ namespace TM_ExchangeURLGrabber
                 //postDict.Add(parameter, magic);
 
                 postDict.Add("__EVENTTARGET", parameters[prefix]);
-                postDict.Add("__EVENTARGUMENT", magic);
+                if (revertSort)
+                {
+                    i--;
+                    revertSort = false;
+                    postDict["__EVENTTARGET"] = "ctl03$DoSearch";
+                }
+                else
+                {
+                    postDict.Add("__EVENTARGUMENT", magic);
+                }
+                Console.WriteLine("Zapped: "+postDict.GetValueOrDefault("ctl03$GetOrderBy1", ""));
 
+                postDict["ctl03$GetOrderBy1"] = "2";
+                //postDict.Remove("ctl03$GetOrderBy1");
+                postDict.Remove("ctl03$cblEnvironment$0");
+                
+                //postDict.Add("ctl03$GetOrderBy1", "2"); //HACK, reverse order
                 Console.WriteLine("############ BEGIN P0ST################");
                 
                 foreach(var elem in postDict)

@@ -2,7 +2,7 @@
   "profiles": {
     "TM-ExchangeURLGrabber": {
       "commandName": "Project",
-      "commandLineArgs": "stage1"
+      "commandLineArgs": "stage1 -1"
     }
   }
 }
